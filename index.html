@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Gerador de Etiquetas</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f0f0f0;
+    margin: 0; padding: 20px;
+    text-align: center;
+  }
+  .screen {
+    display: none;
+    max-width: 650px;
+    margin: auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  }
+  .active {
+    display: block;
+  }
+  h1 {
+    margin-bottom: 25px;
+  }
+  button.big-btn {
+    font-size: 20px;
+    padding: 16px 28px;
+    margin: 10px 6px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    transition: background-color 0.3s;
+    min-width: 140px;
+  }
+  button.big-btn:hover {
+    background-color: #0056b3;
+  }
+  button.menu-btn {
+    font-size: 18px;
+    padding: 14px 22px;
+    margin: 10px 8px;
+    border: 2px solid #007bff;
+    border-radius: 12px;
+    cursor: pointer;
+    background-color: white;
+    color: #007bff;
+    min-width: 120px;
+    transition: all 0.3s;
+  }
+  button.menu-btn.selected, button.menu-btn:hover {
+    background-color: #007bff;
+    color: white;
+  }
+  input[type=text], input[type=password], select {
+    width: 90%;
+    padding: 10px;
+    font-size: 16px;
+    margin: 10px 0 15px 0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+  label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 6px;
+    text-align: left;
+    max-width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  #keyboard {
+    margin: 20px auto 30px auto;
+    max-width: 280px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  #keyboard button {
+    width: 60px;
+    height: 60px;
+    margin: 6px;
+    font-size: 22px;
+    border-radius: 10px;
+    border: none;
+    background: #ddd;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  #keyboard button:hover {
+    background-color: #bbb;
+  }
+  #etiqueta {
+    display: none;
+    width: 100mm;
+    height: 70mm;
+    border: 1px solid #000;
+    padding: 8mm;
+    box-sizing: border-box;
+    background: white;
+    font-size: 16px;
+    margin: 20px auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  #etiqueta .info {
+    max-width: 60%;
+    text-align: left;
+  }
+  #etiqueta .info strong {
+    font-weight: bold;
+    font-size: 18px;
+    display: block;
+    margin-bottom: 8px;
+  }
+  #qrcode {
+    width: 60px;
+    height: 60px;
+  }
+  /* impressão só etiqueta */
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+    #etiqueta, #etiqueta * {
+      visibility: visible;
+    }
+    #etiqueta {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+  }
+  /* Histórico tabelas */
+  table {
+    width: 90%;
+    margin: 10px auto 20px auto;
+    border-collapse: collapse;
+  }
+  th, td {
+    border: 1px solid #ccc;
+    padding: 8px 10px;
+    text-align: left;
+  }
+  th {
+    background: #007bff;
+    color: white;
+  }
+  button.del-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  button.del-btn:hover {
+    background: #a71d2a;
+  }
+  #menu-ferramentas {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  /* Ícone lápis cadastro */
+  #icon-cadastro {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    font-size: 28px;
+    cursor: pointer;
+    color: #007bff;
+    user-select: none;
+  }
+  #icon-cadastro:hover {
+    color: #0056b3;
+  }
+</style>
+</head>
+<body>
+
+<!-- Ícone lápis para abrir cadastro -->
+<div id="icon-cadastro" title="Abrir Cadastro" onclick="goCadastro()">✏️</div>
+
+<!-- Tela seleção peça/ferramenta para impressão -->
+<div id="screen-selecao-ferramenta" class="screen active">
+  <h1>Selecione a Peça/Ferramenta</h1>
+  <div id="menu-ferramentas"></div>
+</div>
+
+<!-- Tela senha para cadastro -->
+<div id="screen-senha" class="screen">
+  <h1>Informe a senha</h1>
+  <input type="password" id="input-senha" placeholder="Senha">
+  <br>
+  <button class="big-btn" onclick="verificaSenha()">Entrar</button>
+  <button class="big-btn" style="background:#dc3545" onclick="voltarSelecaoFerramenta()">Voltar</button>
+</div>
+
+<!-- Tela cadastro -->
+<div id="screen-cadastro" class="screen">
+  <h1>Cadastro</h1>
+  
+  <label for="input-operador">Cadastrar Operador:</label>
+  <input type="text" id="input-operador" placeholder="Nome do operador">
+  <button class="big-btn" onclick="salvarItem('operadores','input-operador')">Salvar Operador</button>
+  
+  <label for="input-materia">Cadastrar Matéria Prima:</label>
+  <input type="text" id="input-materia" placeholder="Nome da matéria-prima">
+  <label for="input-letra">Letra para Nº do Lote:</label>
+  <input type="text" id="input-letra" placeholder="Letra" maxlength="1" style="width:20%; text-transform: uppercase;">
+  <button class="big-btn" onclick="salvarMateria()">Salvar Matéria Prima</button>
+  
+  <label for="input-ferramenta">Cadastrar Peça/Ferramenta:</label>
+  <input type="text" id="input-ferramenta" placeholder="Nome da peça/ferramenta">
+  <button class="big-btn" onclick="salvarItem('ferramentas','input-ferramenta')">Salvar Peça/Ferramenta</button>
+
+  <h2>Histórico de Cadastros</h2>
+
+  <h3>Operadores</h3>
+  <table id="table-operadores"><thead><tr><th>Nome</th><th>Ação</th></tr></thead><tbody></tbody></table>
+
+  <h3>Matérias-primas</h3>
+  <table id="table-materias"><thead><tr><th>Nome</th><th>Letra</th><th>Ação</th></tr></thead><tbody></tbody></table>
+
+  <h3>Peças/Ferramentas</h3>
+  <table id="table-ferramentas"><thead><tr><th>Nome</th><th>Ação</th></tr></thead><tbody></tbody></table>
+
+  <br>
+  <button class="big-btn" style="background:#dc3545" onclick="voltarSelecaoFerramenta()">Voltar</button>
+</div>
+
+<!-- Tela formulário impressão -->
+<div id="screen-formulario" class="screen">
+  <h1>Preencha os dados</h1>
+
+  <label for="select-operador">Operador:</label>
+  <select id="select-operador"></select>
+
+  <label for="select-materia">Matéria Prima:</label>
+  <select id="select-materia"></select>
+
+  <label for="input-lote">Número do Lote (Matéria Prima):</label>
+  <input type="text" id="input-lote" readonly onclick="abrirTeclado('input-lote')" placeholder="Clique para digitar">
+
+  <label for="input-lote-arame">Número do Lote do Arame:</label>
+  <input type="text" id="input-lote-arame" readonly onclick="abrirTeclado('input-lote-arame')" placeholder="Clique para digitar">
+
+  <label for="input-quantidade">Quantidade:</label>
+  <input type="text" id="input-quantidade" readonly onclick="abrirTeclado('input-quantidade')" placeholder="Clique para digitar">
+
+  <br>
+  <button class="big-btn" onclick="gerarEtiqueta()">Imprimir Etiqueta</button>
+  <button class="big-btn" style="background:#dc3545" onclick="voltarSelecaoFerramenta()">Voltar</button>
+</div>
+
+<!-- Tela teclado numérico -->
+<div id="screen-teclado" class="screen">
+  <h1>Digite o número</h1>
+  <input type="text" id="teclado-valor" readonly style="font-size:24px; padding:10px; width: 80%; text-align:center; margin-bottom: 15px;">
+  <div id="keyboard">
+    <button onclick="tecladoPress('1')">1</button>
+    <button onclick="tecladoPress('2')">2</button>
+    <button onclick="tecladoPress('3')">3</button>
+    <button onclick="tecladoPress('4')">4</button>
+    <button onclick="tecladoPress('5')">5</button>
+    <button onclick="tecladoPress('6')">6</button>
+    <button onclick="tecladoPress('7')">7</button>
+    <button onclick="tecladoPress('8')">8</button>
+    <button onclick="tecladoPress('9')">9</button>
+    <button onclick="tecladoApagar()">⌫</button>
+    <button onclick="tecladoPress('0')">0</button>
+    <button onclick="fecharTeclado()">✔</button>
+  </div>
+</div>
+
+<!-- Etiqueta para impressão -->
+<div id="etiqueta" style="display:none;">
+  <div class="info">
+    <strong id="label-peca-materia"></strong>
+    <p><b>Operador:</b> <span id="label-operador"></span></p>
+    <p><b>Lote Matéria:</b> <span id="label-lote"></span></p>
+    <p><b>Lote Arame:</b> <span id="label-lote-arame"></span></p>
+    <p><b>Quantidade:</b> <span id="label-quantidade"></span></p>
+    <p><b>Número da Etiqueta:</b> <span id="label-numero-etiqueta"></span></p>
+  </div>
+  <div id="qrcode"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+  let operadores = [];
+  let materias = [];
+  let ferramentas = [];
+
+  let tecladoCampoAtual = null;
+  let tecladoLetraLote = null;
+  let ferramentaSelecionada = null;
+  let contadorEtiqueta = 1; // contador sequencial para etiquetas
+
+  function mostrarTela(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function goCadastro() {
+    mostrarTela('screen-senha');
+    document.getElementById('input-senha').value = '';
+  }
+
+  // Ao carregar menu de ferramentas já ativo (sem botão próximo)
+  function montarMenuFerramentas() {
+    const div = document.getElementById('menu-ferramentas');
+    div.innerHTML = '';
+    if (ferramentas.length === 0) {
+      div.innerHTML = '<p>Nenhuma peça/ferramenta cadastrada.</p>';
+      return;
+    }
+    ferramentas.forEach((f) => {
+      const btn = document.createElement('button');
+      btn.textContent = f;
+      btn.className = 'menu-btn';
+      btn.onclick = () => {
+        Array.from(div.children).forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        ferramentaSelecionada = f;
+        abrirFormulario();
+      };
+      div.appendChild(btn);
+    });
+  }
+
+  function verificaSenha() {
+    const senha = document.getElementById('input-senha').value.trim();
+    if (senha === 'Adm123') {
+      carregarHistoricos();
+      mostrarTela('screen-cadastro');
+    } else {
+      alert('Senha incorreta!');
+    }
+  }
+
+  function voltarSelecaoFerramenta() {
+    mostrarTela('screen-selecao-ferramenta');
+    montarMenuFerramentas();
+  }
+
+  function salvarItem(tipo, inputId) {
+    let val = document.getElementById(inputId).value.trim();
+    if (!val) {
+      alert('Digite um valor!');
+      return;
+    }
+    if (tipo === 'operadores') {
+      if (!operadores.includes(val)) {
+        operadores.push(val);
+        alert('Operador salvo com sucesso!');
+        atualizarTabelaOperadores();
+      } else {
+        alert('Operador já existe!');
+      }
+    } else if (tipo === 'ferramentas') {
+      if (!ferramentas.includes(val)) {
+        ferramentas.push(val);
+        alert('Peça/Ferramenta salva com sucesso!');
+        atualizarTabelaFerramentas();
+      } else {
+        alert('Peça/Ferramenta já existe!');
+      }
+    }
+    document.getElementById(inputId).value = '';
+  }
+
+  function salvarMateria() {
+    let nome = document.getElementById('input-materia').value.trim();
+    let letra = document.getElementById('input-letra').value.trim().toUpperCase();
+
+    if (!nome) {
+      alert('Digite o nome da matéria-prima!');
+      return;
+    }
+    if (!letra || letra.length !== 1 || !letra.match(/[A-Z]/)) {
+      alert('Digite uma única letra válida para o lote!');
+      return;
+    }
+    if (materias.some(m => m.nome.toUpperCase() === nome.toUpperCase())) {
+      alert('Matéria-prima já cadastrada!');
+      return;
+    }
+    materias.push({ nome: nome, letra: letra });
+    alert('Matéria-prima salva com sucesso!');
+    document.getElementById('input-materia').value = '';
+    document.getElementById('input-letra').value = '';
+    atualizarTabelaMaterias();
+  }
+
+  function atualizarTabelaOperadores() {
+    const tbody = document.querySelector('#table-operadores tbody');
+    tbody.innerHTML = '';
+    operadores.forEach((op, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${op}</td><td><button class="del-btn" onclick="apagarItem('operadores',${i})">Apagar</button></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  function atualizarTabelaMaterias() {
+    const tbody = document.querySelector('#table-materias tbody');
+    tbody.innerHTML = '';
+    materias.forEach((m, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${m.nome}</td><td>${m.letra}</td><td><button class="del-btn" onclick="apagarItem('materias',${i})">Apagar</button></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  function atualizarTabelaFerramentas() {
+    const tbody = document.querySelector('#table-ferramentas tbody');
+    tbody.innerHTML = '';
+    ferramentas.forEach((f, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${f}</td><td><button class="del-btn" onclick="apagarItem('ferramentas',${i})">Apagar</button></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function apagarItem(tipo, index) {
+    if (confirm('Confirma apagar?')) {
+      if (tipo === 'operadores') {
+        operadores.splice(index, 1);
+        atualizarTabelaOperadores();
+      } else if (tipo === 'materias') {
+        materias.splice(index, 1);
+        atualizarTabelaMaterias();
+      } else if (tipo === 'ferramentas') {
+        ferramentas.splice(index, 1);
+        atualizarTabelaFerramentas();
+      }
+    }
+  }
+
+  function carregarHistoricos() {
+    atualizarTabelaOperadores();
+    atualizarTabelaMaterias();
+    atualizarTabelaFerramentas();
+  }
+
+  function abrirFormulario() {
+    if (!ferramentaSelecionada) {
+      alert('Selecione uma peça/ferramenta para continuar!');
+      return;
+    }
+    // Preenche selects
+    const selOp = document.getElementById('select-operador');
+    selOp.innerHTML = operadores.length ? operadores.map(o => `<option>${o}</option>`).join('') : '<option disabled>Nenhum operador cadastrado</option>';
+
+    const selMat = document.getElementById('select-materia');
+
+    // Condição: se peça/ferramenta começa com "COL", trava matéria prima em "NBR"
+    if (ferramentaSelecionada.toUpperCase().startsWith('COL')) {
+      selMat.innerHTML = `<option selected>NBR</option>`;
+      selMat.disabled = true;
+    } else {
+      if(materias.length) {
+        selMat.innerHTML = materias.map(m => `<option value="${m.nome}" data-letra="${m.letra}">${m.nome}</option>`).join('');
+      } else {
+        selMat.innerHTML = '<option disabled>Nenhuma matéria-prima cadastrada</option>';
+      }
+      selMat.disabled = false;
+    }
+
+    // Limpa inputs
+    document.getElementById('input-lote').value = '';
+    document.getElementById('input-lote-arame').value = '';
+    document.getElementById('input-quantidade').value = '';
+
+    mostrarTela('screen-formulario');
+  }
+
+  // Teclado numérico
+  function abrirTeclado(campoId) {
+    tecladoCampoAtual = campoId;
+    const input = document.getElementById(campoId);
+    document.getElementById('teclado-valor').value = input.value;
+    mostrarTela('screen-teclado');
+  }
+  function tecladoPress(num) {
+    const val = document.getElementById('teclado-valor');
+    val.value += num;
+  }
+  function tecladoApagar() {
+    const val = document.getElementById('teclado-valor');
+    val.value = val.value.slice(0, -1);
+  }
+  function fecharTeclado() {
+    const val = document.getElementById('teclado-valor').value;
+    if (tecladoCampoAtual) {
+      document.getElementById(tecladoCampoAtual).value = val;
+    }
+    tecladoCampoAtual = null;
+    mostrarTela('screen-formulario');
+  }
+
+  // Contador sequencial para etiquetas (armazenado localmente)
+  function getContador() {
+    let c = localStorage.getItem('contadorEtiqueta');
+    if (!c) c = 1;
+    else c = parseInt(c);
+    return c;
+  }
+  function setContador(val) {
+    localStorage.setItem('contadorEtiqueta', val);
+  }
+
+  // Buscar letra da matéria pelo nome
+  function getLetraMateria(nome) {
+    let m = materias.find(m => m.nome === nome);
+    return m ? m.letra : '';
+  }
+
+  // Gerar etiqueta
+  function gerarEtiqueta() {
+    const operador = document.getElementById('select-operador').value;
+    const materia = document.getElementById('select-materia').value;
+    const lote = document.getElementById('input-lote').value.trim();
+    const loteArame = document.getElementById('input-lote-arame').value.trim();
+    const quantidade = document.getElementById('input-quantidade').value.trim();
+
+    if (!operador || !materia || !lote || !loteArame || !quantidade) {
+      alert('Preencha todos os campos!');
+      return;
+    }
+
+    // Prepara número etiqueta e incrementa contador
+    let contador = getContador();
+
+    // Monta lote de matéria com letra + "-" + lote
+    let letra = getLetraMateria(materia);
+    // Se ferramenta começar com COL, letra sempre NBR (mesmo se matéria diferente)
+    if (ferramentaSelecionada.toUpperCase().startsWith('COL')) letra = 'NBR';
+
+    const loteComLetra = letra + '-' + lote;
+
+    // Dados para QR: concatenar (sem 'A', 'L', 'Q')
+    // Vamos concatenar apenas: operador=materia=lote=loteArame=quantidade=ferramenta=contador
+    // separados por "="
+    // Obs: sem letras extras q,l,a no meio (pq dava overflow)
+    const qrText = 
+      `operador=${operador}=materia=${materia}=lote=${loteComLetra}=loteArame=${loteArame}=quantidade=${quantidade}=ferramenta=${ferramentaSelecionada}=numEtiqueta=${contador}`;
+
+    // Mostrar etiqueta
+    document.getElementById('label-peca-materia').textContent = `${ferramentaSelecionada} /  ${materia}`;
+    document.getElementById('label-operador').textContent = operador;
+    document.getElementById('label-lote').textContent = loteComLetra;
+    document.getElementById('label-lote-arame').textContent = loteArame;
+    document.getElementById('label-quantidade').textContent = quantidade;
+    document.getElementById('label-numero-etiqueta').textContent = contador;
+
+    const qrDiv = document.getElementById('qrcode');
+    qrDiv.innerHTML = ''; // limpa qr anterior
+
+    try {
+      new QRCode(qrDiv, {
+        text: qrText,
+        width: 90,
+        height: 90,
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } catch(e) {
+      alert('Erro ao gerar QR code: '+e);
+      return;
+    }
+
+    contador++;
+    setContador(contador);
+
+    // Mostra etiqueta e imprime
+    const etiquetaDiv = document.getElementById('etiqueta');
+    etiquetaDiv.style.display = 'flex';
+
+    window.print();
+
+    etiquetaDiv.style.display = 'none';
+  }
+
+  // Inicialização - carregar dados e montar menu
+  function iniciar() {
+    // EXEMPLOS para teste - remova ou altere conforme precisa:
+    if (operadores.length === 0) operadores = ['João', 'Maria'];
+    if (materias.length === 0) materias = [{nome:'Borracha', letra:'B'}, {nome:'NBR', letra:'N'}];
+    if (ferramentas.length === 0) ferramentas = ['COL-100', 'Cabo-200', 'Pinca-300'];
+
+    montarMenuFerramentas();
+  }
+
+  window.onload = iniciar;
+</script>
+
+</body>
+</html>

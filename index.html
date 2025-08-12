@@ -124,9 +124,16 @@
     height: 60px;
   }
   /* impressão só etiqueta */
-  @media print {
-    body * {
-      visibility: hidden;
+ @media print {
+        @page {
+            size: 80mm 50mm; /* força tamanho da etiqueta */
+            margin: 0;       /* sem margens */
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            zoom: 0.95; /* ajusta para caber sem quebrar */
+        }
     }
     #etiqueta, #etiqueta * {
       visibility: visible;
@@ -600,4 +607,5 @@
 </script>
 
 </body>
+
 </html>
